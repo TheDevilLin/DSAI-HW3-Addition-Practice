@@ -14,7 +14,7 @@ TRAINING_SIZE = 80000
 DIGITS = 3
 REVERSE = False
 MAXLEN = DIGITS + 1 + DIGITS
-chars = '0123456789+ '
+chars = '0123456789+- '
 RNN = layers.LSTM
 HIDDEN_SIZE = 128
 BATCH_SIZE = 128
@@ -47,15 +47,23 @@ expected = []
 seen = set()
 print('Generating data...')
 while len(questions) < TRAINING_SIZE:
-    f = lambda: int(''.join(np.random.choice(list('0123456789')) for i in range(np.random.randint(1, DIGITS + 1))))
-    a, b = f(), f()
+    while True:
+        f = lambda: int(''.join(np.random.choice(list('0123456789')) for i in range(np.random.randint(1, DIGITS + 1))))
+        a, b = f(), f()
+        if a >= b:
+            break
     key = tuple(sorted((a, b)))
     if key in seen:
         continue
     seen.add(key)
-    q = '{}+{}'.format(a, b)
+    operation = ''.join(np.random.choice(list('+-')))
+    if operation == '+' :
+        q = '{}+{}'.format(a, b)
+        ans = str(a + b)
+    if operation == '-' :
+        q = '{}-{}'.format(a, b)
+        ans = str(a - b)
     query = q + ' ' * (MAXLEN - len(q))
-    ans = str(a + b)
     ans += ' ' * (DIGITS + 1 - len(ans))
     if REVERSE:
         query = query[::-1]
@@ -140,8 +148,8 @@ for i in range(10):
     print(guess)
 
 print("MSG : Prediction")
-test_x = ["555+275", "860+7  ", "340+29 "]
-test_y = ["830 ", "867 ", "369 "]
+test_x = x[20000:]
+test_y = y[20000:]
 x = np.zeros((len(test_x), MAXLEN, len(chars)), dtype=np.bool)
 y = np.zeros((len(test_y), DIGITS + 1, len(chars)), dtype=np.bool)
 for j, (i, c) in enumerate(zip(test_x, test_y)):
@@ -149,7 +157,7 @@ for j, (i, c) in enumerate(zip(test_x, test_y)):
     y[j] = ctable.encode(c, DIGITS + 1)
 
 right = 0
-preds = model.predict_classes(test_x, verbose=0)
+#preds = model.predict_classes(test_x, verbose=0)
 for i in range(len(preds)):
     q = ctable.decode(test_x[i])
     correct = ctable.decode(test_y[i])
